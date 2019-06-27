@@ -5,8 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TheGameOfLife"
         mc:Ignorable="d"
-        Title="MainWindow" Width="800" Height="640" Background="White">
+        Title="MainWindow" Background="White" Width="900" Height="740">
     <Grid>
-        <Image x:Name="screen" HorizontalAlignment="Right" VerticalAlignment="Top" Width="600" Height="600" Loaded="Screen_Loaded"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="7*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top">
+            <Label x:Name="framesLabel" Content="Frames:" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top" FontSize="16"/>
+            <Label x:Name="liveCellsLabel" Content="Live cells:" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top" FontSize="16"/>
+            <Label x:Name="deadCellsLabel" Content="Dead cells:" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top" FontSize="16"/>
+        </StackPanel>
+        <ScrollViewer HorizontalAlignment="Left" Margin="0,1,0,0" VerticalAlignment="Top" Background="#FFACA6A6" Grid.Column="1" HorizontalScrollBarVisibility="Auto">
+            <Image x:Name="screen" HorizontalAlignment="Right" VerticalAlignment="Top" Loaded="Screen_Loaded" Grid.Column="1" Width="1000" Height="1000"/>
+        </ScrollViewer>
     </Grid>
 </Window>

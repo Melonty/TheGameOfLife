@@ -21,101 +21,118 @@ namespace TheGameOfLife
     /// </summary>
     public partial class MainWindow : Window
     {
-        bool[,] grid;
+        byte[,] grid;
         int screenWidth;
         int gridWidth;
         int cellWidth;
-        WriteableBitmap writableBmp;
+        long frames;
+        WriteableBitmap canvas;
 
 
         public MainWindow()
         {
-            gridWidth = 10;
-            InitializeGrid();
             InitializeComponent();
+            gridWidth = 100;
+            InitializeGrid();
         }
 
         void InitializeGrid()
         {
             var rnd = new Random();
-            grid = new bool[gridWidth, gridWidth];
-            for (int x = 0; x < gridWidth; x++)
+            grid = new byte[gridWidth, gridWidth];
+            for (int i = 0; i < gridWidth; i++)
             {
                 for (int j = 0; j < gridWidth; j++)
                 {
-                    grid[x, j] = rnd.Next(0, 2) == 1;
+                    grid[i, j] = (byte)rnd.Next(2); // 0 or 1
                 }
             }
         }
 
-        // !!! Нужно вот это дописать. Это основная логика программы P.S и она почему-то не работает
-        void ComputeNextGeneration()
-        {
-            bool[,] nextGrid = new bool[gridWidth, gridWidth];
-            int cellNeighbors = 0;
-
-            for (int x = 0; x < gridWidth; x++)
-            {
-                if (x == 0 || x == gridWidth - 1) continue;
-                for (int y = 0; y < gridWidth; y++)
-                {
-                    if (y == 0 || y == gridWidth - 1) continue;
-                    // count neighbors
-                    for (int deltaX = -1; deltaX <= 1; deltaX++)
-                    {
-                        for (int deltaY = -1; deltaY <= 1; deltaY++)
-                        {
-                            cellNeighbors += grid[x + deltaX, y + deltaY] ? 1 : 0;
-                        }
-                    }
-                    cellNeighbors--;
-
-                    // A dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
-                    nextGrid[x, y] = !grid[x, y] && cellNeighbors == 3;
-                    // A live cell with fewer than two live or with more then tree live neighbors dies, as if by underpopulation or by overpopulation respectively
-                    nextGrid[x, y] = grid[x, y] && (cellNeighbors < 2 || cellNeighbors > 3);
-                }
-            }
-            //for (int x = 0; x < gridWidth; x++)
-            //{
-            //    for (int j = 0; j < gridWidth; j++)
-            //    {
-            //        grid[x, j] = nextGrid[x, j];
-            //    }
-            //}
-            grid = nextGrid;
-        }
-
-        // Prepare WritableBitmap
         private void Screen_Loaded(object sender, RoutedEventArgs e)
         {
-            screenWidth = (int)screen.Width;
+            screenWidth = Convert.ToInt32(screen.Width);
             cellWidth = screenWidth / gridWidth;
-            writableBmp = BitmapFactory.New(screenWidth, screenWidth);
-            screen.Source = writableBmp;
-            writableBmp.FillRectangle(0, 0, screenWidth, screenWidth, Colors.White);
-            CompositionTarget.Rendering += CompositionTarget_Rendering;
-
+            canvas = BitmapFactory.New(screenWidth, screenWidth);
+            screen.Source = canvas;
+            canvas.FillRectangle(0, 0, screenWidth, screenWidth, Colors.Black);
+            CompositionTarget.Rendering += UpdateScreen;
         }
 
-        // Screen update rendering
-        private void CompositionTarget_Rendering(object sender, EventArgs e)
+        void UpdateScreen(object sender, EventArgs e)
         {
-            for (int x = 0; x < gridWidth; x++)
+            for (int i = 0; i < gridWidth; i++)
             {
-                for (int y = 0; y < gridWidth; y++)
+                for (int j = 0; j < gridWidth; j++)
                 {
-                    if (grid[x, y])
+                    if (grid[i, j] == 1)
                     {
-                        writableBmp.FillRectangle(x * cellWidth, y * cellWidth, x * cellWidth + cellWidth, y * cellWidth + cellWidth, Colors.Black);
+                        canvas.FillRectangle(i * cellWidth, j * cellWidth, i * cellWidth + cellWidth, j * cellWidth + cellWidth, Colors.White);
+                        canvas.DrawRectangle(i * cellWidth, j * cellWidth, i * cellWidth + cellWidth, j * cellWidth + cellWidth, Colors.Black);
                     }
                     else
                     {
-                        writableBmp.FillRectangle(x * cellWidth, y * cellWidth, x * cellWidth + cellWidth, y * cellWidth + cellWidth, Colors.White);
+                        canvas.FillRectangle(i * cellWidth, j * cellWidth, i * cellWidth + cellWidth, j * cellWidth + cellWidth, Colors.Black);
                     }
                 }
             }
+            Monitoring();
             ComputeNextGeneration();
+        }
+        void ComputeNextGeneration()
+        {
+            byte[,] nextGrid = new byte[gridWidth, gridWidth];
+            for (int i = 0; i < gridWidth; i++)
+            {
+                for (int j = 0; j < gridWidth; j++)
+                {
+                    byte state = grid[i, j];
+                    // Count neighbors
+                    int neighbors = 0;
+                    for (int deltaI = -1; deltaI <= 1; deltaI++)
+                    {
+                        for (int deltaJ = -1; deltaJ <= 1; deltaJ++)
+                        {
+                            neighbors += grid[(i + deltaI + gridWidth) % gridWidth,
+                                              (j + deltaJ + gridWidth) % gridWidth];
+                        }
+                    }
+                    neighbors -= state; // the current cell can't be the neighbor of itself
+
+                    // Computing the cell in nextGrid
+                    if (state == 0 && neighbors == 3)
+                    {
+                        nextGrid[i, j] = 1;
+                    }
+                    else if (state == 1 && neighbors < 2 || neighbors > 3)
+                    {
+                        nextGrid[i, j] = 0;
+                    }
+                    else
+                    {
+                        nextGrid[i, j] = state;
+                    }
+                }
+            }
+            grid = nextGrid;
+        }
+
+        void Monitoring()
+        {
+            frames++;
+            int liveCells = 0;
+            int deadCells;
+            for (int i = 0; i < gridWidth; i++)
+            {
+                for (int j = 0; j < gridWidth; j++)
+                {
+                    liveCells += grid[i, j];
+                }
+            }
+            deadCells = grid.Length - liveCells;
+            framesLabel.Content = $"Frames: {frames}";
+            liveCellsLabel.Content = $"Live cells: {liveCells}";
+            deadCellsLabel.Content = $"Dead cells: {deadCells}";
         }
     }
 }
